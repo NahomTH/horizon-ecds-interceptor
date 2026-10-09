@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>org.horizon</groupId>
+    <artifactId>ecds-interceptor</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <name>Horizon ECDS bulk-export interceptor</name>
+    <description>
+        Registers "ECDS" as a Smile CDR bulk-export output format: $export?_outputFormat=text/csv
+        writes the 58-column Horizon ECDS supplemental-data CSV instead of NDJSON.
+    </description>
+
+    <properties>
+        <maven.compiler.release>17</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <!--
+          STORAGE_BULK_EXPORT_RESOURCE_CONVERT ships in HAPI FHIR 8.14.0 / Smile CDR 2026.11.
+          Until those are released, build against the published master snapshot. Pin both to the
+          release the Horizon environment actually runs before anything ships.
+        -->
+        <hapi.version>8.13.13-SNAPSHOT</hapi.version>
+    </properties>
+
+    <dependencies>
+        <!--
+          Everything Smile CDR already has on its classpath is "provided": the jar must not
+          carry its own copies of HAPI, Spring, Jackson or Caffeine. Nothing here uses a
+          Smile-specific API (cdr-api-public-java); the hook, the pointcut and DaoRegistry are
+          all HAPI FHIR, which is why this compiles against HAPI alone.
+        -->
+        <dependency>
+            <groupId>ca.uhn.hapi.fhir</groupId>
+            <artifactId>hapi-fhir-jpaserver-base</artifactId>
+            <version>${hapi.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>ca.uhn.hapi.fhir</groupId>
+            <artifactId>hapi-fhir-structures-r4</artifactId>
+            <version>${hapi.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>jakarta.servlet</groupId>
+            <artifactId>jakarta.servlet-api</artifactId>
+            <version>6.0.0</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+            <version>3.2.2</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- The one library Smile does not ship; shaded and relocated into the jar below. -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-csv</artifactId>
+            <version>1.14.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>5.10.1</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <version>3.22.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <version>5.18.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>1.5.18</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <repositories>
+        <repository>
+            <id>central-portal-snapshots</id>
+            <url>https://central.sonatype.com/repository/maven-snapshots/</url>
+            <releases><enabled>false</enabled></releases>
+            <snapshots><enabled>true</enabled></snapshots>
+        </repository>
+    </repositories>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.2.5</version>
+            </plugin>
+            <plugin>
+                <!--
+                  Produces target/ecds-interceptor-<version>.jar with commons-csv relocated inside,
+                  so the jar drops into Smile's customerlib folder on its own.
+
+                  commons-csv 1.14 is not self-contained: CSVFormat's static initialiser touches
+                  org.apache.commons.io.output.AppendableOutputStream, and CSVPrinter/CSVParser
+                  reach for commons-io's IOStream/IOConsumer/Charsets and commons-codec's Base64.
+                  Shading commons-csv alone produced a jar that threw
+                  NoClassDefFoundError: org/apache/commons/io/output/AppendableOutputStream
+                  from EcdsCsv's class initialiser — i.e. on the first row written — unless the
+                  host happened to have a new enough commons-io on its classpath. Both are
+                  shaded and relocated too, so the jar really does stand on its own and cannot
+                  collide with whatever versions Smile ships.
+                -->
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.6.0</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals><goal>shade</goal></goals>
+                        <configuration>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <artifactSet>
+                                <includes>
+                                    <include>org.apache.commons:commons-csv</include>
+                                    <include>commons-io:commons-io</include>
+                                    <include>commons-codec:commons-codec</include>
+                                </includes>
+                            </artifactSet>
+                            <relocations>
+                                <relocation>
+                                    <pattern>org.apache.commons.csv</pattern>
+                                    <shadedPattern>org.horizon.shaded.commons.csv</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.apache.commons.io</pattern>
+                                    <shadedPattern>org.horizon.shaded.commons.io</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.apache.commons.codec</pattern>
+                                    <shadedPattern>org.horizon.shaded.commons.codec</shadedPattern>
+                                </relocation>
+                            </relocations>
+                            <filters>
+                                <filter>
+                                    <!-- Nothing here is a module or a signed artifact; keeping
+                                         their descriptors would only confuse Smile's classloader. -->
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>module-info.class</exclude>
+                                        <exclude>META-INF/versions/**/module-info.class</exclude>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

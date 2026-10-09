@@ -1,0 +1,50 @@
+{
+  "resourceType": "Composition",
+  "id": "m-comp",
+  "identifier": {
+    "value": "doc-001"
+  },
+  "status": "final",
+  "type": {
+    "coding": [
+      {
+        "system": "http://loinc.org",
+        "code": "34133-9"
+      }
+    ]
+  },
+  "subject": {
+    "reference": "Patient/m1"
+  },
+  "encounter": {
+    "reference": "Encounter/m-enc"
+  },
+  "date": "2024-01-01",
+  "author": [
+    {
+      "reference": "Practitioner/m-prac"
+    }
+  ],
+  "title": "CCD",
+  "section": [
+    {
+      "title": "Procedures",
+      "entry": [
+        {
+          "reference": "Procedure/m-proc-pcs"
+        }
+      ]
+    },
+    {
+      "title": "Results",
+      "entry": [
+        {
+          "reference": "Observation/m-obs-radlex"
+        },
+        {
+          "reference": "Condition/m-cond-icd9"
+        }
+      ]
+    }
+  ]
+}
