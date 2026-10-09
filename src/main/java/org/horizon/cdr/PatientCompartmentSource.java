@@ -22,7 +22,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
- * Walks one member's clinical records — the patient-driven export Niks proposed.
+ * Walks one member's clinical records — the agreed patient-driven export.
  *
  * <p>The export is run on {@code Patient} only. For each Patient in a chunk this fetches the
  * row-producing types that reference that patient ({@code Condition?patient=Patient/x},

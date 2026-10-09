@@ -10,11 +10,11 @@ Prefer: respond-async
 produces the 58-column Horizon ECDS supplemental-data CSV (NCQA/HEDIS MY26) instead of NDJSON,
 one file per export chunk of members, plus an audit file, all listed in the export manifest.
 
-This is the standalone project Niks asked for (2026-10-06): the POC (`poc-ecds-mapper`) is the
+This is the standalone project requested on 2026-10-06: the POC (`poc-ecds-mapper`) is the
 reference for the column logic, and everything that only made sense with a folder of NDJSON —
 the two-pass indexer, the CLI, the download pipeline — is gone.
 
-> **`_type=Patient`, nothing else.** Niks's NDJSON `$export` lists sixteen types. Reusing that
+> **`_type=Patient`, nothing else.** The reference NDJSON `$export` lists sixteen types. Reusing that
 > command with `_outputFormat=text/csv` still produces correct rows, but the server fetches and
 > expands every Condition, Observation and Procedure only to skip them, and each of those chunks
 > still has to return *something*, so the manifest fills with header-only CSVs. The interceptor
@@ -30,7 +30,7 @@ the two-pass indexer, the CLI, the download pipeline — is gone.
    fetches them in chunks of up to `bulk_export.file_max_capacity` (HAPI's
    `BulkExportFileMaximumCapacity`, 1,000 resources by default), and hands each chunk to the
    converter.
-3. **Patient-driven fan-out** (Niks's design): for each Patient in the chunk, `PatientCompartmentSource`
+3. **Patient-driven fan-out** (the agreed design): for each Patient in the chunk, `PatientCompartmentSource`
    fetches the clinical records that reference that member — Encounter, Condition, Observation,
    Procedure, DiagnosticReport, Immunization, MedicationRequest, MedicationDispense, in that
    order — and `EcdsRowBuilder` turns each into zero or more rows. Practitioners, Organizations,
@@ -215,9 +215,9 @@ peak heap, shrinks with it.
 release carrying it. Two ways to get one:
 
 - **Smile CDR** — the real target. The distribution is not public; get `smilecdr-2026.11.*` from
-  Smile (Niks). Unpack, then `bin/smilecdr start`. Admin console `http://localhost:9100`
-  (`admin`/`password`), FHIR endpoint on `:8000` — which is why every command here and in Niks's
-  curl uses port 8000. Needs OpenJDK 21 or 17 and ~4 GB RAM; **Smile is not supported on
+  Smile. Unpack, then `bin/smilecdr start`. Admin console `http://localhost:9100`
+  (`admin`/`password`), FHIR endpoint on `:8000` — which is why every command here and in the
+  reference curl uses port 8000. Needs OpenJDK 21 or 17 and ~4 GB RAM; **Smile is not supported on
   Windows**, so use the Docker distribution there — `docker login https://docker.smilecdr.com`
   then pull `docker.smilecdr.com/smilecdr:<release>`. There is no Smile image on Docker Hub;
   `smilecdr/smilecdr` does not exist and a pull of it just 404s.
@@ -470,7 +470,7 @@ reference output before shipping.
 
 - **`MedicationDispense` produces rows.** The mapping makes it a first-class row source — the
   stated path for `QuantityDispensed`, one of two sources for `RxNorm`, and one of the performers
-  `ProviderKey` is "reached from" — and Niks's export pulls it. `CodeColumns`, `DateOfService`
+  `ProviderKey` is "reached from" — and the reference `$export` pulls it. `CodeColumns`, `DateOfService`
   and `ProviderColumns` already handled it; only the row-producing list was missing it. The POC
   export contained none, so none of its 668 rows change. **Confirm this is wanted** before the
   first real run.
@@ -492,7 +492,7 @@ reference output before shipping.
 ## Open items
 
 - **Smile CDR 2026.11 in the Horizon environment** — the pointcut does not exist before it.
-- **S3 and scheduling** — tabled by Niks; whatever runs `tools/run_ecds_export.py`'s steps on a
+- **S3 and scheduling** — tabled for now; whatever runs `tools/run_ecds_export.py`'s steps on a
   schedule also does the upload. The manifest's `EcdsAudit` entries are the error file.
 - **Partitioning.** Every storage read runs as `SystemRequestDetails.forAllPartitions()`, while
   the export job itself scopes its reads to each resource's own partition. On an unpartitioned
@@ -524,7 +524,7 @@ reference output before shipping.
 - **`HCFAPOS_00`** is required and blank on every row (every `Encounter.class` is data-absent);
   needs Horizon's answer, not code.
 - **`PractitionerRole.specialty`** — the spec's primary taxonomy source; now one search away via
-  the resolver. Not implemented because no data carried it. Niks's export pulls `PractitionerRole`,
+  the resolver. Not implemented because no data carried it. The reference `$export` pulls `PractitionerRole`,
   so the data to test it against may be arriving.
 - **NPPES Registry lookup** for `ProviderTaxonomy` where the source carries no discrete taxonomy.
   Still a question of whether this should make network calls at all.

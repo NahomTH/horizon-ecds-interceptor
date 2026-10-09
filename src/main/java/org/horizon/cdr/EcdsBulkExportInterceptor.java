@@ -92,8 +92,8 @@ public class EcdsBulkExportInterceptor {
     /**
      * An ECDS export wants {@code _type=Patient} and nothing else.
      *
-     * <p>Niks's NDJSON {@code $export} lists sixteen types, and reaching for that command with
-     * {@code _outputFormat=text/csv} still works — rows come from the Patient fan-out and the
+     * <p>The reference NDJSON {@code $export} lists sixteen types, and reaching for that command
+     * with {@code _outputFormat=text/csv} still works — rows come from the Patient fan-out and the
      * other types are skipped so nothing is counted twice — but the server fetches and expands
      * every Condition, Observation and Procedure on the way to throwing them away, and each of
      * those chunks still has to return a file, so the manifest fills up with header-only CSVs.

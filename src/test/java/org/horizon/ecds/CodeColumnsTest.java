@@ -303,7 +303,7 @@ class CodeColumnsTest {
     @Test
     void medicationReferenceResolvesToAMedicationOfItsOwn() {
         // The mapping says "contained OR REFERENCED". Inside the CDR the Medication is a read
-        // away, and Niks's export pulls Medication for exactly this.
+        // away, and the reference export pulls Medication for exactly this.
         ReferenceIndex index = new ReferenceIndex();
         index.add(parse("""
                 {"resourceType":"Medication","id":"med-9",

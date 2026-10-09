@@ -31,7 +31,7 @@ public final class EcdsRowBuilder {
      * source — it is the stated path for {@code QuantityDispensed}
      * ("use {@code MedicationDispense.quantity.value} where present"), one of the two sources
      * for {@code RxNorm}, and one of the performers {@code ProviderKey} is "reached from" — and
-     * because Niks's export pulls it. {@link CodeColumns}, {@link DateOfService} and
+     * because the reference {@code $export} pulls it. {@link CodeColumns}, {@link DateOfService} and
      * {@link ProviderColumns} already handle it. The POC export contained none, so no row of its
      * reference output changes; the first Horizon dataset that carries one will produce rows
      * here that the POC would have dropped. Confirm that is wanted before the first real run.

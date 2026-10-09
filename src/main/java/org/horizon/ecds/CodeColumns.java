@@ -123,7 +123,7 @@ public final class CodeColumns {
      * referenced</em> Medication resource when {@code medicationCodeableConcept} is absent".
      * The CLI only ever read a contained one — there was no lookup to hand it — so a
      * MedicationRequest written as {@code medicationReference: Medication/123} lost its RxNorm
-     * code. Inside the CDR the Medication is one read away, and Niks's export pulls Medication
+     * code. Inside the CDR the Medication is one read away, and the reference export pulls Medication
      * for exactly this reason. Inline still wins, so this can only fill a column that was blank.
      */
     private static void applyMedication(JsonNode theRecord, EcdsRow theRow, ResourceResolver theResolver) {
